@@ -166,10 +166,10 @@ while True:
                     cv2.putText(bg, str(wList[len(wList)-1]), (656, 50), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0,255,0), 2)
 
                 #color=(0,0,0) if powerL=="ON" else (0,0,255)
-                color = (powerL=="ON") and (0,0,0) or (0,0,255)
+                color = (powerL=="ON") and (0,0,255) or (255,0,0)
                 cv2.putText(bg, powerL, (753, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3,  color, 2)
                 #color=(0,0,0) if powerW=="ON" else (0,0,255)
-                color = (powerW=="ON") and (0,0,0) or (0,0,255)
+                color = (powerW=="ON") and (0,0,255) or (255,0,0)
                 cv2.putText(bg, powerL, (1118, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3, color, 2)
 
                 cv2.imshow("Planting", bg)
