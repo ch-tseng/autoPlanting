@@ -66,7 +66,7 @@ while True:
             if(dataValue!=""):
                 now = datetime.now()
                 dataTime = now.strftime("%H:%M:%S")
-                hourNow = now.strftime("%H")
+                hourNow = int(now.strftime("%H"))
                 sType, sValue, sPower = dataValue.split(":")
                 #print(sType, sValue)
 
@@ -141,7 +141,7 @@ while True:
                 #matplotlib.pyplot.show()
                 cv2.imshow("TEST", img)
 
-                print(img.shape)
+                print(img.shape, hourNow)
                 cv2.waitKey(1)
 
     i += 1
