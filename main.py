@@ -13,6 +13,7 @@ plotLength = 8
 thLight = 500
 thWater = 200
 lightTime = (6,17)  #hour
+waterTime = (5,18) # hour
 
 tList = []
 hList = []
@@ -50,15 +51,21 @@ def readSerial():
 
 
 #plot.figure()
-figure = plot.figure(num=None, figsize=(18, 8), dpi=80, facecolor='w', edgecolor='k')
+figure = plot.figure(num=None, figsize=(18, 7), dpi=70, facecolor='w', edgecolor='k')
 ax_t = figure.add_subplot(2,2,1)
 ax_h = figure.add_subplot(2,2,2)
 ax_l = figure.add_subplot(2,2,3)
 ax_w = figure.add_subplot(2,2,4)
 
+powerT="OFF"
+powerH="OFF"
+powerL="OFF"
+powerW="OFF"
+
 i = 0
 while True:
     data = readSerial()
+    #bg = cv2.imread("bgplant.jpg")
 
     if(data != ""):
         dataList = data.split(",")
@@ -68,19 +75,21 @@ while True:
                 dataTime = now.strftime("%H:%M:%S")
                 hourNow = int(now.strftime("%H"))
                 sType, sValue, sPower = dataValue.split(":")
-                #print(sType, sValue)
 
                 if(sType=="T"):
                     tList = inputData(tList, float(sValue), plotLength)
                     timeList_t = inputData(timeList_t, dataTime, plotLength)
+                    powerT="ON" if sPower==1 else "OFF"
 
                 elif(sType=="H"):
                     hList = inputData(hList, float(sValue), plotLength)
                     timeList_h = inputData(timeList_h, dataTime, plotLength)
+                    powerH="ON" if sPower==1 else "OFF"
 
                 elif(sType=="L"):
                     lList = inputData(lList, int(sValue), plotLength)
                     timeList_l = inputData(timeList_l, dataTime, plotLength)
+                    powerL="ON" if sPower==1 else "OFF"
 
                     if(hourNow<=lightTime[1] and hourNow>=lightTime[0]):
                         if(int(sValue)<thLight and int(sPower)==0):
@@ -96,6 +105,7 @@ while True:
                     sValue = 1024 - int(sValue)
                     wList = inputData(wList, int(sValue), plotLength)
                     timeList_w = inputData(timeList_w, dataTime, plotLength)
+                    powerW="ON" if sPower==1 else "OFF"
 
                     if(int(sValue)<thWater and int(sPower)==0):
                         Serial.write("c".encode())
@@ -139,7 +149,30 @@ while True:
                 img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
 
                 #matplotlib.pyplot.show()
-                cv2.imshow("TEST", img)
+                bg = cv2.imread("bgplant.jpg")
+                bg[290:290+490, 85:85+1260] = img
+                cv2.putText(bg, str(lightTime[0])+":00~"+str(lightTime[1])+":00", (760, 140), cv2.FONT_HERSHEY_COMPLEX, 1.3, (255,0,0), 3)
+                cv2.putText(bg, str(thLight), (1290, 140), cv2.FONT_HERSHEY_COMPLEX, 1.3, (0,0,255), 3)
+                cv2.putText(bg, str(waterTime[0])+":00~"+str(waterTime[1])+":00", (760, 206), cv2.FONT_HERSHEY_COMPLEX, 1.3, (255,0,0), 3)
+                cv2.putText(bg, str(thWater), (1290, 206), cv2.FONT_HERSHEY_COMPLEX, 1.3, (0,0,255), 3)
+
+                if(len(tList)>0):
+                    cv2.putText(bg, str(tList[len(tList)-1])+"C", (146, 50), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0,255,0), 2)
+                if(len(hList)>0):
+                    cv2.putText(bg, str(hList[len(hList)-1])+"%", (310, 50), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0,255,0), 2)
+                if(len(lList)>0):
+                    cv2.putText(bg, str(lList[len(lList)-1]), (476, 50), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0,255,0), 2)
+                if(len(wList)>0):
+                    cv2.putText(bg, str(wList[len(wList)-1]), (656, 50), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0,255,0), 2)
+
+                #color=(0,0,0) if powerL=="ON" else (0,0,255)
+                color = (powerL=="ON") and (0,0,0) or (0,0,255)
+                cv2.putText(bg, powerL, (753, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3,  color, 2)
+                #color=(0,0,0) if powerW=="ON" else (0,0,255)
+                color = (powerW=="ON") and (0,0,0) or (0,0,255)
+                cv2.putText(bg, powerL, (1118, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3, color, 2)
+
+                cv2.imshow("Planting", bg)
 
                 print(img.shape, hourNow)
                 cv2.waitKey(1)
