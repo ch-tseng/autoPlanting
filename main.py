@@ -118,7 +118,7 @@ while True:
                 elif(sType=="L"):
                     lList = inputData(lList, int(sValue), plotLength)
                     timeList_l = inputData(timeList_l, dataTime, plotLength)
-                    powerL="ON" if sPower==1 else "OFF"
+                    #powerL="ON" if sPower==1 else "OFF"
 
                     if(hourNow<lightTime[1] and hourNow>=lightTime[0]):
                         if(int(sValue)<thLight and sPower==0):
@@ -131,7 +131,7 @@ while True:
                             Serial.write("b".encode())
                             sPower = 0
                             print("Power off the Light.")
-
+                    '''    
                     if(clickLight==0):
                         if sPower==1:
                             Serial.write("b".encode())
@@ -152,12 +152,13 @@ while True:
                             sPower = 1
                             print("Power off the Water.")
 
-
+                    powerL="ON" if sPower==1 else "OFF"
+                    '''
                 elif(sType=="W"):
                     sValue = 1024 - int(sValue)
                     wList = inputData(wList, int(sValue), plotLength)
                     timeList_w = inputData(timeList_w, dataTime, plotLength)
-                    powerW="ON" if sPower==1 else "OFF"
+                    #powerW="ON" if sPower==1 else "OFF"
 
                     if(hourNow<waterTime[1] and hourNow>=waterTime[0]):
                         if(sPower==1):
@@ -178,6 +179,29 @@ while True:
                             Serial.write("d".encode())
                             sPower = 0
                             print("Power off the Water.")
+
+                    #powerW="ON" if sPower==1 else "OFF"
+                if(clickLight==0):
+                    if sPower==1:
+                        Serial.write("b".encode())
+                        sPower = 0
+                        print("Power off the Light.")
+                    else:
+                        Serial.write("a".encode())
+                        sPower = 1
+                        print("Power on the Light.")
+
+                if(clickWater==0):
+                    if sPower==1:
+                        Serial.write("c".encode())
+                        sPower = 0
+                        print("Power on the Water.")
+                    else:
+                        Serial.write("d".encode())
+                        sPower = 1
+                        print("Power off the Water.")
+
+                powerL="ON" if sPower==1 else "OFF"
 
 
                 # draw a cardinal sine plot
