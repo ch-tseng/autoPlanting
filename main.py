@@ -14,6 +14,8 @@ thLight = 500
 thWater = 200
 lightTime = (6,17)  #hour
 waterTime = (5,18) # hour
+waterInterval = 5 * 60 #seconds
+wateringTimeLength = 15  #seconds
 
 tList = []
 hList = []
@@ -61,6 +63,7 @@ powerT="OFF"
 powerH="OFF"
 powerL="OFF"
 powerW="OFF"
+waterLastTime = 0
 
 i = 0
 while True:
@@ -75,6 +78,8 @@ while True:
                 dataTime = now.strftime("%H:%M:%S")
                 hourNow = int(now.strftime("%H"))
                 sType, sValue, sPower = dataValue.split(":")
+                sPower = int(sPower)
+                print(sType, sValue, sPower)
 
                 if(sType=="T"):
                     tList = inputData(tList, float(sValue), plotLength)
@@ -92,14 +97,16 @@ while True:
                     powerL="ON" if sPower==1 else "OFF"
 
                     if(hourNow<=lightTime[1] and hourNow>=lightTime[0]):
-                        if(int(sValue)<thLight and int(sPower)==0):
+                        if(int(sValue)<thLight and sPower==0):
                             #--> a: power on ligher, b: power off light, c: power on water, d: power off water
                             Serial.write("a".encode())
+                            sPower = 1
                             print("Power on the Light.")
                     else:
-                        if(int(sPower)==1):
+                        if(sPower==1):
                             Serial.write("b".encode())
-                            print("Power on the Light.")
+                            sPower = 0
+                            print("Power off the Light.")
 
                 elif(sType=="W"):
                     sValue = 1024 - int(sValue)
@@ -107,9 +114,26 @@ while True:
                     timeList_w = inputData(timeList_w, dataTime, plotLength)
                     powerW="ON" if sPower==1 else "OFF"
 
-                    if(int(sValue)<thWater and int(sPower)==0):
-                        Serial.write("c".encode())
-                        print("Power on the water.")
+                    if(hourNow<=waterTime[1] and hourNow>=waterTime[0]):
+                        if(sPower==1):
+                            if(time.time()-waterLastTime>wateringTimeLength or int(sValue)>thWater):
+                                Serial.write("d".encode())
+                                sPower = 0
+                                print("Power off the water.")
+
+                        if(sPower==0):
+                            if(time.time()-waterLastTime > waterInterval ):
+                                if(int(sValue)<=thWater):
+                                    Serial.write("c".encode())
+                                    print("Power on the water.")
+                                    sPower = 1
+                                    waterLastTime = time.time()
+                    else:
+                        if(sPower==1):
+                            Serial.write("d".encode())
+                            sPower = 0
+                            print("Power off the Water.")
+
 
                 # draw a cardinal sine plot
                 x = np.array (timeList_t )
@@ -170,7 +194,7 @@ while True:
                 cv2.putText(bg, powerL, (753, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3,  color, 2)
                 #color=(0,0,0) if powerW=="ON" else (0,0,255)
                 color = (powerW=="ON") and (0,0,255) or (255,0,0)
-                cv2.putText(bg, powerL, (1118, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3, color, 2)
+                cv2.putText(bg, powerW, (1118, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3, color, 2)
 
                 cv2.imshow("Planting", bg)
 
