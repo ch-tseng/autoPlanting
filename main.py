@@ -10,8 +10,8 @@ import matplotlib.pyplot as plot
 Serial = serial.Serial("/dev/ttyS0", 9600, timeout= 0.5 )
 
 plotLength = 8
-thLight = 500
-thWater = 200
+thLight = 900
+thWater = 450
 lightTime = (6,17)  #hour
 waterTime = (5,18) # hour
 waterInterval = 5 * 60 #seconds
@@ -191,10 +191,12 @@ while True:
 
                 #color=(0,0,0) if powerL=="ON" else (0,0,255)
                 color = (powerL=="ON") and (0,0,255) or (255,0,0)
-                cv2.putText(bg, powerL, (753, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3,  color, 2)
+                cv2.putText(bg, powerL, (620, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1,  color, 2)
                 #color=(0,0,0) if powerW=="ON" else (0,0,255)
                 color = (powerW=="ON") and (0,0,255) or (255,0,0)
-                cv2.putText(bg, powerW, (1118, 257), cv2.FONT_HERSHEY_COMPLEX, 1.3, color, 2)
+                cv2.putText(bg, powerW, (749, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
+                cv2.putText(bg, str(int(waterInterval/60)), (960, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
+                cv2.putText(bg, str(wateringTimeLength), (1215, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
 
                 cv2.imshow("Planting", bg)
 
