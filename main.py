@@ -11,13 +11,13 @@ import matplotlib.pyplot as plot
 
 Serial = serial.Serial("/dev/ttyS0", 9600, timeout= 0.5 )
 
-plotLength = 8
+plotLength = 120
 thLight = 900
-thWater = 450
+thWater = 600
 lightTime = (6,17)  #hour
 waterTime = (5,18) # hour
 waterInterval = 5 * 60 #seconds
-wateringTimeLength = 15  #seconds
+wateringTimeLength = 12  #seconds
 
 tList = []
 hList = []
@@ -75,6 +75,8 @@ powerL="OFF"
 powerW="OFF"
 waterLastTime = 0
 
+orgBG = cv2.imread("bgplant.jpg")
+bg = orgBG.copy()
 i = 0
 while True:
     data = readSerial()
@@ -83,11 +85,23 @@ while True:
     if(data != ""):
         dataList = data.split(",")
         for dataValue in dataList:
+
+            #Button commands
+            clickLight = GPIO.input(btnLight)
+            clickWater = GPIO.input(btnWater)
+            clickAuto = GPIO.input(btnAuto)
+            print(clickLight, clickWater, clickAuto)
+
             if(dataValue!=""):
                 now = datetime.now()
                 dataTime = now.strftime("%H:%M:%S")
                 hourNow = int(now.strftime("%H"))
-                sType, sValue, sPower = dataValue.split(":")
+                try:
+                    sType, sValue, sPower = dataValue.split(":")
+                except:
+                    print("Unexpected error:", sys.exc_info()[0])
+                    break
+
                 sPower = int(sPower)
                 print(sType, sValue, sPower)
 
@@ -117,6 +131,27 @@ while True:
                             Serial.write("b".encode())
                             sPower = 0
                             print("Power off the Light.")
+
+                    if(clickLight==0):
+                        if sPower==1:
+                            Serial.write("b".encode())
+                            sPower = 0
+                            print("Power off the Light.")
+                        else:
+                            Serial.write("a".encode())
+                            sPower = 1
+                            print("Power on the Light.")
+
+                    if(clickWater==0):
+                        if sPower==1:
+                            Serial.write("c".encode())
+                            sPower = 0
+                            print("Power on the Water.")
+                        else:
+                            Serial.write("d".encode())
+                            sPower = 1
+                            print("Power off the Water.")
+
 
                 elif(sType=="W"):
                     sValue = 1024 - int(sValue)
@@ -151,6 +186,7 @@ while True:
                 ax_t.cla()
                 ax_t.set_ylim(0, 80)
                 ax_t.set_title("Temperature (C)")
+                ax_t.axes.get_xaxis().set_visible(False)
                 ax_t.plot ( x, y )
 
                 x = np.array (timeList_h )
@@ -158,6 +194,7 @@ while True:
                 ax_h.cla()
                 ax_h.set_title("Humandity (%)")
                 ax_h.set_ylim(0, 100)
+                ax_h.axes.get_xaxis().set_visible(False)
                 ax_h.plot ( x, y )
 
                 x = np.array (timeList_l )
@@ -165,6 +202,7 @@ while True:
                 ax_l.cla()
                 ax_l.set_title("Lightness (degree)")
                 ax_l.set_ylim(0, 1024)
+                ax_l.axes.get_xaxis().set_visible(False)
                 ax_l.plot ( x, y )
 
                 x = np.array (timeList_w )
@@ -172,6 +210,7 @@ while True:
                 ax_w.cla()
                 ax_w.set_title("Water (degree)")
                 ax_w.set_ylim(0, 1024)
+                ax_w.axes.get_xaxis().set_visible(False)
                 ax_w.plot ( x, y )
 
 
@@ -183,7 +222,7 @@ while True:
                 img = cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
 
                 #matplotlib.pyplot.show()
-                bg = cv2.imread("bgplant.jpg")
+                bg = orgBG.copy()
                 bg[290:290+490, 85:85+1260] = img
                 cv2.putText(bg, str(lightTime[0])+":00~"+str(lightTime[1])+":00", (760, 140), cv2.FONT_HERSHEY_COMPLEX, 1.3, (255,0,0), 3)
                 cv2.putText(bg, str(thLight), (1290, 140), cv2.FONT_HERSHEY_COMPLEX, 1.3, (0,0,255), 3)
@@ -205,8 +244,8 @@ while True:
                 #color=(0,0,0) if powerW=="ON" else (0,0,255)
                 color = (powerW=="ON") and (0,0,255) or (255,0,0)
                 cv2.putText(bg, powerW, (760, 277), cv2.FONT_HERSHEY_COMPLEX, 0.8, color, 2)
-                cv2.putText(bg, str(int(waterInterval/60)), (960, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
-                cv2.putText(bg, str(wateringTimeLength), (1215, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
+                cv2.putText(bg, str(int(waterInterval/60)), (960, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, (255,0,0), 2)
+                cv2.putText(bg, str(wateringTimeLength), (1215, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, (255,0,0), 2)
 
                 cv2.imshow("Planting", bg)
 
