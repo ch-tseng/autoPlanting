@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+import RPi.GPIO as GPIO
 import sys, time
 from datetime import datetime
 import serial
@@ -25,6 +27,14 @@ timeList_t = []
 timeList_h = []
 timeList_l = []
 timeList_w = []
+
+btnLight = 2
+btnWater = 3
+btnAuto = 4
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(btnLight, GPIO.IN)
+GPIO.setup(btnWater, GPIO.IN)
+GPIO.setup(btnAuto, GPIO.IN)
 
 def inputData(arrayName, data, length):
     if(len(arrayName)>length):
@@ -96,7 +106,7 @@ while True:
                     timeList_l = inputData(timeList_l, dataTime, plotLength)
                     powerL="ON" if sPower==1 else "OFF"
 
-                    if(hourNow<=lightTime[1] and hourNow>=lightTime[0]):
+                    if(hourNow<lightTime[1] and hourNow>=lightTime[0]):
                         if(int(sValue)<thLight and sPower==0):
                             #--> a: power on ligher, b: power off light, c: power on water, d: power off water
                             Serial.write("a".encode())
@@ -114,7 +124,7 @@ while True:
                     timeList_w = inputData(timeList_w, dataTime, plotLength)
                     powerW="ON" if sPower==1 else "OFF"
 
-                    if(hourNow<=waterTime[1] and hourNow>=waterTime[0]):
+                    if(hourNow<waterTime[1] and hourNow>=waterTime[0]):
                         if(sPower==1):
                             if(time.time()-waterLastTime>wateringTimeLength or int(sValue)>thWater):
                                 Serial.write("d".encode())
@@ -191,16 +201,15 @@ while True:
 
                 #color=(0,0,0) if powerL=="ON" else (0,0,255)
                 color = (powerL=="ON") and (0,0,255) or (255,0,0)
-                cv2.putText(bg, powerL, (620, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1,  color, 2)
+                cv2.putText(bg, powerL, (620, 277), cv2.FONT_HERSHEY_COMPLEX, 0.8,  color, 2)
                 #color=(0,0,0) if powerW=="ON" else (0,0,255)
                 color = (powerW=="ON") and (0,0,255) or (255,0,0)
-                cv2.putText(bg, powerW, (749, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
+                cv2.putText(bg, powerW, (760, 277), cv2.FONT_HERSHEY_COMPLEX, 0.8, color, 2)
                 cv2.putText(bg, str(int(waterInterval/60)), (960, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
                 cv2.putText(bg, str(wateringTimeLength), (1215, 277), cv2.FONT_HERSHEY_COMPLEX, 1.1, color, 2)
 
                 cv2.imshow("Planting", bg)
 
-                print(img.shape, hourNow)
                 cv2.waitKey(1)
 
     i += 1
