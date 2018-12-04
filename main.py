@@ -1,7 +1,8 @@
+#!/home/pi/envs/plants/bin/python
 # -*- coding: utf-8 -*-
 
 import RPi.GPIO as GPIO
-import sys, time
+import sys, time, os
 from datetime import datetime
 import serial
 import cv2
@@ -11,14 +12,15 @@ import matplotlib.pyplot as plot
 
 Serial = serial.Serial("/dev/ttyS0", 9600, timeout= 0.5 )
 
-plotLength = 120
-thLight = 900
-thWater = 550
-lightTime = (6,17)  #hour
+plotLength = 30
+thLight = 950
+thWater = 20
+lightTime = (6,18)  #hour
 waterTime = (5,18) # hour
 waterInterval =  2 * 60 * 60 #seconds
-wateringTimeLength = 8  #seconds
+wateringTimeLength = 15  #seconds
 
+automatic = True
 tList = []
 hList = []
 lList = []
@@ -28,7 +30,7 @@ timeList_h = []
 timeList_l = []
 timeList_w = []
 
-btnLight = 2
+btnLight = 21
 btnWater = 3
 btnAuto = 4
 GPIO.setmode(GPIO.BCM)
@@ -73,7 +75,7 @@ def readSerial2():
 
     if count > 0:
         recv = Serial.read(count).decode('utf-8')
-        print("recv:", recv)
+        #print("recv:", recv)
 
         aLoc = recv.find("[")
         bLoc = recv.find("]")
@@ -83,10 +85,10 @@ def readSerial2():
 
     return dataString
 
+
 cv2.namedWindow("Plant Image", cv2.WND_PROP_FULLSCREEN)        # Create a named window
 cv2.setWindowProperty("Plant Image", cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN)
 
-#plot.figure()
 figure = plot.figure(num=None, figsize=(18, 7), dpi=70, facecolor='w', edgecolor='k')
 ax_t = figure.add_subplot(2,2,1)
 ax_h = figure.add_subplot(2,2,2)
@@ -104,6 +106,29 @@ waterLastTime = 0
 orgBG = cv2.imread("bgplant.jpg")
 bg = orgBG.copy()
 i = 0
+
+def lightPressed(channel):
+    global nowLight, powerL, automatic
+
+    automatic = False
+    print("Light pressed", channel)
+    if nowLight==1:
+        Serial.write("b".encode())
+        nowLight = 0
+        print("Power off the Light.")
+    else:
+        Serial.write("a".encode())
+        nowLight = 1
+        print("Power on the Light.")
+
+    powerL="ON" if nowLight==1 else "OFF"
+
+
+
+#GPIO.add_event_detect(btnLight, GPIO.FALLING, lightPressed, bouncetime=1000)
+
+app_start_time = time.time()
+
 while True:
     data = readSerial()
     #bg = cv2.imread("bgplant.jpg")
@@ -111,27 +136,14 @@ while True:
     if(data != ""):
         dataList = data.split(",")
         for dataValue in dataList:
-
+            '''
             #Button commands
             clickLight = GPIO.input(btnLight)
             clickWater = GPIO.input(btnWater)
             clickAuto = GPIO.input(btnAuto)
             print("Button:", clickLight, clickWater, clickAuto)
 
-            if(clickLight==0 or clickWater==0):
-                if(clickLight==0):
-                    if nowLight==1:
-                        Serial.write("b".encode())
-                        nowLight = 0
-                        print("Power off the Light.")
-                    else:
-                        Serial.write("a".encode())
-                        nowLight = 1
-                        print("Power on the Light.")
-
-                    powerL="ON" if nowLight==1 else "OFF"
-                    break
-                '''
+            
                 if(clickWater==0):
                     if nowWater==1:
                         Serial.write("d".encode())
@@ -144,41 +156,39 @@ while True:
 
                     powerL="ON" if nowWater==1 else "OFF"
                     break
-                '''
+            '''
 
-            else:
+            if(dataValue!=""):
+                now = datetime.now()
+                dataTime = now.strftime("%H:%M:%S")
+                hourNow = int(now.strftime("%H"))
+                try:
+                    sType, sValue, sPower = dataValue.split(":")
+                except:
+                    print("Unexpected error:", sys.exc_info()[0])
+                    break
 
-                if(dataValue!=""):
-                    now = datetime.now()
-                    dataTime = now.strftime("%H:%M:%S")
-                    hourNow = int(now.strftime("%H"))
-                    try:
-                        sType, sValue, sPower = dataValue.split(":")
-                    except:
-                        print("Unexpected error:", sys.exc_info()[0])
-                        break
+                try:
+                    sPower = int(sPower)
+                    sValue = float(sValue)
+                except:
+                    break
 
-                    try:
-                        sPower = int(sPower)
-                        sValue = float(sValue)
-                    except:
-                        break
+                if(sType=="T"):
+                    tList = inputData(tList, sValue, plotLength)
+                    timeList_t = inputData(timeList_t, dataTime, plotLength)
+                    powerT="ON" if sPower==1 else "OFF"
+                elif(sType=="H"):
+                    hList = inputData(hList, sValue, plotLength)
+                    timeList_h = inputData(timeList_h, dataTime, plotLength)
+                    powerH="ON" if sPower==1 else "OFF"
 
-                    if(sType=="T"):
-                        tList = inputData(tList, sValue, plotLength)
-                        timeList_t = inputData(timeList_t, dataTime, plotLength)
-                        powerT="ON" if sPower==1 else "OFF"
+                elif(sType=="L"):
+                    lList = inputData(lList, int(sValue), plotLength)
+                    timeList_l = inputData(timeList_l, dataTime, plotLength)
+                    powerL="ON" if sPower==1 else "OFF"
 
-                    elif(sType=="H"):
-                        hList = inputData(hList, sValue, plotLength)
-                        timeList_h = inputData(timeList_h, dataTime, plotLength)
-                        powerH="ON" if sPower==1 else "OFF"
-
-                    elif(sType=="L"):
-                        lList = inputData(lList, int(sValue), plotLength)
-                        timeList_l = inputData(timeList_l, dataTime, plotLength)
-                        powerL="ON" if sPower==1 else "OFF"
-
+                    if(automatic is True):
                         if(hourNow<lightTime[1] and hourNow>=lightTime[0]):
                             if(int(sValue)<thLight and sPower==0):
                                 #--> a: power on ligher, b: power off light, c: power on water, d: power off water
@@ -199,12 +209,13 @@ while True:
                                 nowLight = 0
                                 print("Power off the Light.")
 
-                    elif(sType=="W"):
-                        sValue = 1024 - int(sValue)
-                        wList = inputData(wList, int(sValue), plotLength)
-                        timeList_w = inputData(timeList_w, dataTime, plotLength)
-                        powerW="ON" if sPower==1 else "OFF"
+                elif(sType=="W"):
+                    sValue = 1024 - int(sValue)
+                    wList = inputData(wList, int(sValue), plotLength)
+                    timeList_w = inputData(timeList_w, dataTime, plotLength)
+                    powerW="ON" if sPower==1 else "OFF"
 
+                    if(automatic is True):
                         if(hourNow<waterTime[1] and hourNow>=waterTime[0]):
                             if(sPower==1):
                                 if(time.time()-waterLastTime>wateringTimeLength or int(sValue)>thWater):
@@ -280,8 +291,7 @@ while True:
                 if(len(wList)>0):
                     cv2.putText(bg, str(wList[len(wList)-1]), (656, 50), cv2.FONT_HERSHEY_COMPLEX, 0.9, (0,255,0), 2)
 
-                print("#2", "clickLight:", clickLight, "clickWater:", clickWater, "powerL:", powerL, "powerW:", powerW)
-                #color=(0,0,0) if powerL=="ON" else (0,0,255)
+                #print("#2", "clickLight:", clickLight, "clickWater:", clickWater, "powerL:", powerL, "powerW:", powerW)
                 color = (powerL=="ON") and (0,0,255) or (255,0,0)
                 cv2.putText(bg, powerL, (620, 277), cv2.FONT_HERSHEY_COMPLEX, 0.8,  color, 2)
                 #color=(0,0,0) if powerW=="ON" else (0,0,255)
@@ -296,3 +306,5 @@ while True:
                 cv2.waitKey(1)
 
     i += 1
+    if(time.time()-app_start_time > 12 * 60 * 60):
+        os.execv('/home/pi/works/plant/main.py', [''])
